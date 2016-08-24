@@ -1,4 +1,4 @@
-package me.rubendm.scrabblesets;
+package me.rubendm.scrabblesets.java;
 
 import org.junit.Before;
 import org.junit.Test;

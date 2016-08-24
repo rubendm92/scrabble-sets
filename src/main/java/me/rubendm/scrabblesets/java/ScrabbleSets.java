@@ -1,4 +1,4 @@
-package me.rubendm.scrabblesets;
+package me.rubendm.scrabblesets.java;
 
 import java.util.Collection;
 import java.util.List;
