@@ -4,8 +4,9 @@ class ScrabbleSets(private val initialTileCount: Map[Char, Int]) {
 
   def tilesLeft(input: String) = {
     val leftChars = calculateLeftChars(input)
-    if (leftChars.keys.exists(_ < 0)) invalidInputMessage(leftChars.filter(_._1 < 0))
-    else formatOutput(leftChars)
+    leftChars.find(e => e._1 < 0)
+      .map(e => s"Invalid input. More ${e._2.head}'s have been taken from the bag than possible.")
+      .getOrElse(formatOutput(leftChars))
   }
 
   private def calculateLeftChars(input: String) = {
@@ -14,11 +15,6 @@ class ScrabbleSets(private val initialTileCount: Map[Char, Int]) {
       .map(entry => (entry._1, entry._2 - inputCharsByCount(entry._1)))
       .groupBy(_._2)
       .mapValues(_.keys.toList)
-  }
-
-  private def invalidInputMessage(chars: Map[Int, List[Char]]) = {
-    val string: String = chars.values.flatten.map(_ + "'s").mkString(", ")
-    s"Invalid input. More $string have been taken from the bag than possible."
   }
 
   private def formatOutput(chars: Map[Int, List[Char]]) = {
