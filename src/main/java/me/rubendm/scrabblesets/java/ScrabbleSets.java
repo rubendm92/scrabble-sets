@@ -3,6 +3,7 @@ package me.rubendm.scrabblesets.java;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import static java.util.function.Function.identity;
@@ -10,80 +11,54 @@ import static java.util.stream.Collectors.*;
 
 class ScrabbleSets {
 
-    private final List<TileCount> initialTileCount;
+    private final Map<Character, Long> set;
 
     ScrabbleSets(Map<Character, Long> set) {
-        initialTileCount = set.entrySet().stream()
-                .map(TileCount::new)
-                .collect(toList());
+        this.set = set;
     }
 
     String tilesLeft(String input) {
-        final Map<Long, List<Character>> outputMap = countLeftCharacters(inputCharactersByCount(input));
-        if (hasBeenSubtractedMoreCharactersThanAllowed(outputMap)) {
-            return invalidInputMessage(outputMap);
-        }
-        return formatOutput(outputMap);
+        Map<Character, Long> usedChars = findCharsByCount(input);
+        Map<Character, Long> leftChars = removeUsedChars(usedChars);
+        return findError(leftChars).orElseGet(() -> formatOutput(leftChars));
     }
 
-    private Map<Character, Long> inputCharactersByCount(String input) {
-        return characters(input)
+    private static Map<Character, Long> findCharsByCount(String input) {
+        return input.chars()
+                .mapToObj(c -> (char) c)
                 .collect(groupingBy(identity(), counting()));
     }
 
-    private Stream<Character> characters(String input) {
-        return input.chars().mapToObj(c -> (char) c);
-    }
-
-    private Map<Long, List<Character>> countLeftCharacters(Map<Character, Long> inputMap) {
-        return initialTileCount.stream()
-                .map(tile -> tile.minus(inputMap.getOrDefault(tile.character, 0L)))
-                .collect(groupingBy(tile -> tile.count, mapping(tile -> tile.character, toList())));
-    }
-
-    private boolean hasBeenSubtractedMoreCharactersThanAllowed(Map<Long, List<Character>> outputMap) {
-        return outputMap.entrySet().stream().anyMatch(entry -> entry.getKey() < 0);
-    }
-
-    private String invalidInputMessage(Map<Long, List<Character>> outputMap) {
-        return outputMap.entrySet().stream()
-                .filter(entry -> entry.getKey() < 0)
-                .map(Map.Entry::getValue)
+    private Map<Character, Long> removeUsedChars(Map<Character, Long> charsByCount) {
+        return Stream.of(set.entrySet(), charsByCount.entrySet())
                 .flatMap(Collection::stream)
-                .map(c -> c + "'s")
-                .collect(joining(", ", "Invalid input. More ", " have been taken from the bag than possible."));
+                .collect(toMap(Map.Entry::getKey, Map.Entry::getValue, (v1, v2) -> v1 - v2));
     }
 
-    private String formatOutput(Map<Long, List<Character>> outputMap) {
-        return outputMap.entrySet().stream()
-                .sorted((left, right) -> right.getKey().compareTo(left.getKey()))
-                .map(this::formatLine)
+    private static Optional<String> findError(Map<Character, Long> leftChars) {
+        return leftChars.entrySet().stream()
+                .filter(e -> e.getValue() < 0)
+                .findFirst()
+                .map(ScrabbleSets::formatError);
+    }
+
+    private static String formatOutput(Map<Character, Long> leftChars) {
+        Map<Long, List<Character>> collect = leftChars.entrySet().stream()
+                .collect(groupingBy(Map.Entry::getValue, mapping(Map.Entry::getKey, toList())));
+        return collect.entrySet().stream()
+                .sorted((e1, e2) -> e2.getKey().compareTo(e1.getKey()))
+                .map(ScrabbleSets::formatLine)
                 .collect(joining("\n"));
     }
 
-    private String formatLine(Map.Entry<Long, List<Character>> entry) {
+    private static String formatError(Map.Entry<Character, Long> entry) {
+        return "Invalid input. More " + entry.getKey() + "'s have been taken from the bag than possible.";
+    }
+
+    private static String formatLine(Map.Entry<Long, List<Character>> entry) {
         return entry.getKey() + ": " + entry.getValue().stream()
                 .sorted()
                 .map(Object::toString)
                 .collect(joining(", "));
-    }
-
-    private static class TileCount {
-        final Character character;
-        final Long count;
-
-        TileCount(Character character, Long count) {
-            this.character = character;
-            this.count = count;
-        }
-
-        TileCount(Map.Entry<Character, Long> entry) {
-            this.character = entry.getKey();
-            this.count = entry.getValue();
-        }
-
-        TileCount minus(Long minus) {
-            return new TileCount(character, count - minus);
-        }
     }
 }

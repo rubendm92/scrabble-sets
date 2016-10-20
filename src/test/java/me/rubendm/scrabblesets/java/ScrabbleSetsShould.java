@@ -19,7 +19,7 @@ public class ScrabbleSetsShould {
     private ScrabbleSets scrabble;
 
     @Parameterized.Parameters
-    public static Collection<Object[]> data() {
+    public static Collection<Object[]> testCases() {
         return asList(new Object[][] {
                 { "PQAREIOURSTHGWIOAE_", "10: E\n" +
                         "7: A, I\n" +
@@ -43,10 +43,13 @@ public class ScrabbleSetsShould {
         });
     }
 
-    @Parameterized.Parameter
-    public String input;
-    @Parameterized.Parameter(value = 1)
-    public String expectedOutput;
+    private final String input;
+    private final String expectedOutput;
+
+    public ScrabbleSetsShould(String input, String expectedOutput) {
+        this.input = input;
+        this.expectedOutput = expectedOutput;
+    }
 
     private static final Map<Character, Long> englishScrabbleSet = new HashMap<>();
     static {
